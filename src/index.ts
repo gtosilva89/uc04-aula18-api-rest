@@ -11,23 +11,34 @@ const lanches = [
     id: 1,
     nome: "X-Polenta Picanha",
     tamanho: "P",
-    valor: 30
+    valor: 30,
   },
   {
     id: 2,
     nome: "X-Polenta Picanha",
     tamanho: "G",
-    valor: 45
+    valor: 45,
   },
   {
     id: 3,
     nome: "X-Bacon",
     tamanho: "G",
     valor: 30,
-  }
+  },
 ];
 
-const pedidos = [];
+type Pedido = {
+  id: number;
+  status: string;
+  id_lanche: number;
+  nome_lanche: string;
+  quantidade: number;
+  nome_cliente: string;
+  endereco: string;
+  telefone: string;
+};
+
+const pedidos: Pedido[] = [];
 
 function resourceHello(req: Request, res: Response) {
   console.log(req.ip);
@@ -39,26 +50,46 @@ function resourceHello(req: Request, res: Response) {
 
 // GET lanches
 app.get("/lanches", (req: Request, res: Response) => {
-res.send(lanches);
-})
+  res.send(lanches);
+});
 
 // POST pedidos
 app.post("/pedidos", (req: Request, res: Response) => {
   // resgatar as informações da requisição
   // RECOMENDADO - utiliza apenas as informações necessárias
-  const {id_cliente, quantidade, nome_cliente, endereco, telefone} = req.body;
+  const { id_lanche, quantidade, nome_cliente, endereco, telefone } = req.body;
+
+  // validar se o lanche com o id existe na lista de lanches
+
+  let lanche;
+
+  for (const l of lanches) {
+    if (l.id === id_lanche) {
+      lanche = l;
+      break;
+    }
+  }
+
+  // se não existir retorna um erro dizendo que não existe
+  if (!lanche) {
+    res.status(404).send("Lanche não encontrado!");
+    return;
+  }
+  // se existir, segue a criação do pedido
+  const nome_lanche = lanche.nome;
 
   const pedido = {
-    id: pedidos.length+1,
+    id: pedidos.length + 1,
     status: "criado",
-    id_cliente,
+    id_lanche,
+    nome_lanche,
     quantidade,
     nome_cliente,
     endereco,
     telefone,
   };
 
-// spread operator - você vai extratir tudo que tiver de informação - NÃO RECOMENDADO
+  // spread operator - você vai extratir tudo que tiver de informação - NÃO RECOMENDADO
   // const pedido = {
   //   id: pedidos.length+1,
   //   status: "criado",
@@ -66,12 +97,40 @@ app.post("/pedidos", (req: Request, res: Response) => {
   // };
 
   //adicionar um pedido a lista de pedidos
-  pedidos.push(pedido)
+  pedidos.push(pedido);
   // retornar o pedido com o id
   res.send(pedido);
 });
 
+// Buscar um pedido pelo seu ID
 // GET /pedidos/id/status
+app.get("/pedidos/:id/status", (req: Request, res: Response) => {
+  // como pegar o id do pedido na requisição?
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(400).send("Id do pedido inválido!");
+    return;
+  }
+
+  // converto o id que é string para um número inteiro
+  const id_pedido = parseInt(id , 10);
+  // Buscar o pedido com o id da requisição
+  let pedido;
+  for (const p of pedidos) {
+    if (p.id === id_pedido) {
+      pedido = p;
+      break;
+    }
+  }
+  // Se o pedido não existir, retorna um erro
+  if (!pedido) {
+    res.status(404).send({error: "Pedido não encontrado!"});
+    return;
+  }
+  // Se existir, retorna o pedido completo
+  res.send({status: pedido.status});
+});
 
 // PATCH /pedidos/id -> endereço entrega
 
